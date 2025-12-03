@@ -1,0 +1,31 @@
+`default_nettype none
+
+module register
+#(
+    parameter WORD_WIDTH        = 0,
+    parameter RESET_VALUE       = 0
+)
+(
+    input wire                      clock,
+    input wire                      write_enable,
+    input wire                      reset,
+    input wire  [WORD_WIDTH-1:0]    input_data,
+    output reg  [WORD_WIDTH-1:0]    output_data
+);
+
+    initial begin
+        output_data = RESET_VALUE;
+    end
+
+    always @(posedge clock) begin
+        if (write_enable == 1'b1) begin
+            output_data <= input_data;
+        end
+
+        if (reset == 1'b1) begin
+            output_data <= RESET_VALUE;
+        end
+    end
+
+endmodule : register
+

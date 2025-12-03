@@ -1,0 +1,50 @@
+'beq' : {'opcode' : '1100011','funct3' : '000'}
+'bne' : {'opcode' : '1100011','funct3' : '001'}
+'blt' : {'opcode' : '1100011','funct3' : '100'}
+'bge' : {'opcode' : '1100011','funct3' : '101'}
+'bltu' : {'opcode' : '1100011','funct3' : '110'}
+'bgeu' : {'opcode' : '1100011','funct3' : '111'}
+'jalr' : {'opcode' : '1100111','funct3' : '000'}
+'jal' : {'opcode' : '1101111'}
+'lui' : {'opcode' : '0110111'}
+'auipc' : {'opcode' : '0010111'}
+'addi' : {'opcode' : '0010011','funct3' : '000'}
+'slli' : {'opcode' : '0010011','funct7' : '0000000','funct3' : '001'}
+'slti' : {'opcode' : '0010011','funct3' : '010'}
+'sltiu' : {'opcode' : '0010011','funct3' : '011'}
+'xori' : {'opcode' : '0010011','funct3' : '100'}
+'srli' : {'opcode' : '0010011','funct7' : '0000000','funct3' : '101'}
+'srai' : {'opcode' : '0010011','funct7' : '0100000','funct3' : '101'}
+'ori' : {'opcode' : '0010011','funct3' : '110'}
+'andi' : {'opcode' : '0010011','funct3' : '111'}
+'add' : {'opcode' : '0110011','funct7' : '0000000','funct3' : '000'}
+'sub' : {'opcode' : '0110011','funct7' : '0100000','funct3' : '000'}
+'sll' : {'opcode' : '0110011','funct7' : '0000000','funct3' : '001'}
+'slt' : {'opcode' : '0110011','funct7' : '0000000','funct3' : '010'}
+'sltu' : {'opcode' : '0110011','funct7' : '0000000','funct3' : '011'}
+'xor' : {'opcode' : '0110011','funct7' : '0000000','funct3' : '100'}
+'srl' : {'opcode' : '0110011','funct7' : '0000000','funct3' : '101'}
+'sra' : {'opcode' : '0110011','funct7' : '0100000','funct3' : '101'}
+'or' : {'opcode' : '0110011','funct7' : '0000000','funct3' : '110'}
+'and' : {'opcode' : '0110011','funct7' : '0000000','funct3' : '111'}
+'lb' : {'opcode' : '0000011','funct3' : '000'}
+'lh' : {'opcode' : '0000011','funct3' : '001'}
+'lw' : {'opcode' : '0000011','funct3' : '010'}
+'lbu' : {'opcode' : '0000011','funct3' : '100'}
+'lhu' : {'opcode' : '0000011','funct3' : '101'}
+'sb' : {'opcode' : '0100011','funct3' : '000'}
+'sh' : {'opcode' : '0100011','funct3' : '001'}
+'sw' : {'opcode' : '0100011','funct3' : '010'}
+'fence' : {'opcode' : '0001111','funct3' : '000'}
+'fence_i' : {'opcode' : '0001111','funct7' : '0000000','funct3' : '001'}
+'ecall' : {'opcode' : '1110011','funct7' : '0000000','funct3' : '000'}
+'ebreak' : {'opcode' : '1110011','funct7' : '0000000','funct3' : '000'}
+'csrrw' : {'opcode' : '1110011','funct3' : '001'}
+'csrrs' : {'opcode' : '1110011','funct3' : '010'}
+'csrrc' : {'opcode' : '1110011','funct3' : '011'}
+'csrrwi' : {'opcode' : '1110011','funct3' : '101'}
+'csrrsi' : {'opcode' : '1110011','funct3' : '110'}
+'csrrci' : {'opcode' : '1110011','funct3' : '111'}
+'mret' : {'opcode' : '1110011','funct7' : '0011000','funct3' : '000'}
+'system' : {'opcode' : '1110011'}
+'wfi' : {'opcode' : '1110011','funct7' : '0001000','funct3' : '000'}

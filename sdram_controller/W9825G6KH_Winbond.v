@@ -1,0 +1,18 @@
+`default_nettype none
+
+module W9825G6KH_Winbond
+#(
+    parameter BURST_SIZE = 2,
+    parameter HOST_WORD_WIDTH = 32,
+    parameter HOST_ADDRESS_WIDTH = 32,
+    parameter MEM_WORD_WIDTH = 16,
+    parameter MEM_ADDR_WIDTH = 13
+)
+(
+    // Host side 2 port interface
+    
+
+    // Memory side controller outputs
+);
+
+endmodule

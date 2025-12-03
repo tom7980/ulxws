@@ -1,0 +1,106 @@
+start: instruction+
+
+instruction : OPCODE parameters -> opcode
+            | LABEL -> label
+
+LABEL : LOCATION ":"
+
+parameters : [REGISTER "," REGISTER "," REGISTER] -> reg_reg_reg
+           | [REGISTER "," IMMEDIATE] -> reg_imm
+           | [REGISTER "," REGISTER "," IMMEDIATE] -> reg_reg_imm
+           | [REGISTER "," LOCATION]
+
+REGISTER.2 : "x0"
+         | "x1"
+         | "x2"
+         | "x3"
+         | "x4"
+         | "x5"
+         | "x6"
+         | "x7"
+         | "x8"
+         | "x9"
+         | "x10"
+         | "x11"
+         | "x12"
+         | "x13"
+         | "x14"
+         | "x15"
+         | "x16"
+         | "x17"
+         | "x18"
+         | "x19"
+         | "x20"
+         | "x21"
+         | "x22"
+         | "x23"
+         | "x24"
+         | "x25"
+         | "x26"
+         | "x27"
+         | "x28"
+         | "x29"
+         | "x30"
+         | "x31"
+
+OPCODE.2 : "beq"
+       | "bne"
+       | "blt"
+       | "bge"
+       | "bltu"
+       | "bgeu"
+       | "jalr"
+       | "jal"
+       | "lui"
+       | "auipc"
+       | "addi"
+       | "slli"
+       | "slti"
+       | "sltiu"
+       | "xori"
+       | "srli"
+       | "srai"
+       | "ori"
+       | "andi"
+       | "add"
+       | "sub"
+       | "sll"
+       | "slt"
+       | "sltu"
+       | "xor"
+       | "srl"
+       | "sra"
+       | "or"
+       | "and"
+       | "lb"
+       | "lh"
+       | "lw"
+       | "lbu"
+       | "lhu"
+       | "sb"
+       | "sh"
+       | "sw"
+       | "fence"
+       | "fence_i"
+       | "ecall"
+       | "ebreak"
+       | "csrrw"
+       | "csrrs"
+       | "csrrc"
+       | "csrrwi"
+       | "csrrsi"
+       | "csrrci"
+       | "mret"
+       | "system"
+       | "wfi"
+
+
+IMMEDIATE : SIGNED_NUMBER
+WHITESPACE: (" " | "\n")+
+LOCATION : LETTER+
+
+
+%import common.LETTER
+%import common.SIGNED_NUMBER
+
+%ignore WHITESPACE
