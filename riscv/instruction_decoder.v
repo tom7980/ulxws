@@ -12,7 +12,6 @@ module instruction_decoder
 (
     input wire clk,
     input wire branch_flush, // Flush is reset (flush on branch taken)
-    input wire pipeline_stall, // global stall not from next pipeline stage (potentially on traps)
 
     // Input from fetch stage
     input wire [WORD_WIDTH-1:0] instr,
@@ -51,94 +50,27 @@ module instruction_decoder
 
     // ============= Register Signals In & Out for pipelining ============= //
 
-    reg [WORD_WIDTH-1:0] instruction_r;
+    wire [WORD_WIDTH-1:0] instruction_r;   
 
     localparam NOP = 32'b00000000000000000000000000010011;
 
-    // Register input data when instruction is valid and we are ready for an instruction decode
-    reg insert_next;
-
-    always @(*) begin
-        insert_next = (fetch_valid == 1'b1) && (decode_ready == 1'b1);
-    end
-
-    register
+    // Buffer all incoming data in a skid buffer for stalls
+    skid_buffer
     #(
-        .WORD_WIDTH(WORD_WIDTH),
-        .RESET_VALUE(NOP)
+        .DATA_WIDTH(WORD_WIDTH + ADDR_WIDTH + 1),
+	.RESET_VALUE({NOP, {ADDR_WIDTH{1'b0}}, 1'b0}) // Set instr to NOP on branch flush
     )
-    instruction_reg
+    skid_buffer_in
     (
-        .clock(clk),
-        .reset(branch_flush),
-        .write_enable(insert_next),
-        .input_data(instr),
-        .output_data(instruction_r)
+	.clk(clk),
+	.reset(branch_flush),
+	.i_valid(fetch_valid),
+	.i_ready(decode_ready),
+	.o_valid(decode_valid),
+	.o_ready(execute_ready),
+	.i_data({instr, instr_address_in, branch_taken_in}),
+	.o_data({instruction_r, instr_address_out, branch_taken_out})
     );
-
-    register
-    #(
-        .WORD_WIDTH(WORD_WIDTH),
-        .RESET_VALUE({WORD_WIDTH{1'b0}})
-    )
-    instr_address_reg_in
-    (
-        .clock(clk),
-        .reset(branch_flush),
-        .write_enable(insert_next),
-        .input_data(instr_address_in),
-        .output_data(instr_address_out)
-    );
-
-    register
-    #(
-        .WORD_WIDTH(1),
-        .RESET_VALUE(1'b0)
-    )
-    branch_taken_reg
-    (
-        .clock(clk),
-        .reset(branch_flush),
-        .write_enable(insert_next),
-        .input_data(branch_taken_in),
-        .output_data(branch_taken_out)
-    );
-
-
-    // ============= Valid & Ready Signals ========== //
-
-    always @(*) begin
-        decode_ready = (execute_ready == 1'b1) && (pipeline_stall == 1'b0);
-        decode_valid = (illegal_instruction_exception == 1'b0) && (branch_flush == 1'b0);
-    end
-
-    // ============= Opcode Type ================== //
-
-    // reg op_imm      = 1'b0;
-    // reg op_r_to_r   = 1'b0;
-    // reg op_jal      = 1'b0;
-    // reg op_jalr     = 1'b0;
-    // reg op_auipc    = 1'b0;
-    // reg op_lui      = 1'b0;
-    // reg op_branch   = 1'b0;
-    // reg op_load     = 1'b0;
-    // reg op_store    = 1'b0;
-    // reg op_misc_mem = 1'b0;
-    // reg op_sys      = 1'b0;
-
-    // always @(*) begin
-    //     op_imm      = (instruction_r[6:0] == `OP_MASK_IMM);
-    //     op_r_to_r   = (instruction_r[6:0] == `OP_MASK_R_TO_R);
-    //     op_jal      = (instruction_r[6:0] == `OP_MASK_JAL);
-    //     op_jalr     = (instruction_r[6:0] == `OP_MASK_JALR);
-    //     op_auipc    = (instruction_r[6:0] == `OP_MASK_AUIPC);
-    //     op_lui      = (instruction_r[6:0] == `OP_MASK_LUI);
-    //     op_branch   = (instruction_r[6:0] == `OP_MASK_BRANCH);
-    //     op_load     = (instruction_r[6:0] == `OP_MASK_LOAD);
-    //     op_store    = (instruction_r[6:0] == `OP_MASK_STORE);
-    //     op_misc_mem = (instruction_r[6:0] == `OP_MASK_MISC_MEM);
-    //     op_sys      = (instruction_r[6:0] == `OP_MASK_SYS);
-    // end
 
     // ============= Part Decodes ============= //
 
@@ -147,21 +79,6 @@ module instruction_decoder
         funct3 = instruction_r[14:12];
         opcode = instruction_r[6:0];
     end
-
-    // reg op_unknown = 1'b0;
-
-    // always @(*) begin
-    //     op_type_r = (op_r_to_r == 1'b1);
-    //     op_type_i = (op_imm == 1'b1) | (op_load == 1'b1) | (op_jalr == 1'b1);
-    //     op_type_s = (op_store == 1'b1);
-    //     op_type_b = (op_branch == 1'b1);
-    //     op_type_u = (op_lui == 1'b1) | (op_auipc == 1'b1);
-    //     op_type_j = (op_jal == 1'b1);
-    //     op_unknown = (op_type_b == 1'b0) & (op_type_i == 1'b0) & (op_type_j == 1'b0) & (op_type_r == 1'b0) 
-    //                 & (op_type_s == 1'b0) & (op_type_u == 1'b0) & (op_misc_mem == 1'b0) & (op_sys == 1'b0);
-
-    //     illegal_instruction_exception = (instruction_r == {WORD_WIDTH{1'b1}}) || (instruction_r[15:0] == {16{1'b0}}) || (op_unknown == 1'b1);
-    // end
 
     // ============= Decode Immediates ============= //
 
@@ -199,7 +116,7 @@ module instruction_decoder
         is_branch_op = 2'b0;
         alusrc_a = alusrca_rs1;
         alusrc_b = alusrcb_rs2;
-        immediate_out = {WORD_WIDTH{1'b0}};
+        immediate_out = imm_r;
         addr_offset_out = {ADDR_WIDTH{1'b0}};
         alu_op = ALU_ADD;
 
@@ -242,51 +159,7 @@ module instruction_decoder
             `OP_SH     : begin load_store_op = MEM_STORE_H; addr_offset_from_reg = 1'b1; rd_out = 5'b0; addr_offset_out = imm_s; end
             `OP_SW     : begin load_store_op = MEM_STORE_W; addr_offset_from_reg = 1'b1; rd_out = 5'b0; addr_offset_out = imm_s; end
             `OP_FENCE  : begin rs2_out = 5'b0; end
-        endcase
-
-        // case(1'b1)
-        //     op_type_r:
-        //         immediate_out = {WORD_WIDTH{1'b0}};
-        //         addr_offset_out = {ADDR_WIDTH{1'b0}};
-        //         add_sub_out = (funct3 == `FUNCT3_SUB) & (funct7 == FUNCT7_SUB);
-        //         alusrc_a = alusrca_rs1;
-        //         alusrc_b = alusrcb_rs2;
-        //     op_type_i:
-        //         immediate_out = (op_jalr == 1'b1) ? 32'h4 : {{WORD_WIDTH-11{(sign_in == 1'b1)}}, instruction_r[30:20]};
-        //         addr_offset_out = (op_jalr == 1'b1) ? {{WORD_WIDTH-11{(sign_in == 1'b1)}}, instruction_r[30:20]} : {ADDR_WIDTH{1'b0}};
-        //         jump_is_link_reg = (op_jalr == 1'b1) ? 1'b1 : 1'b0;
-        //         load_store_op = (op_load == 1'b1) ? 2'b01 : 2'b00;
-        //         alusrc_a = (op_jalr == 1'b1) ? alusrca_addr : alusrca_rs1;
-        //         alusrc_b = alusrcb_imm;
-        //     op_type_s:
-        //         immediate_out = {{WORD_WIDTH-11{(sign_in == 1'b1)}}, instruction_r[30:25], instruction_r[11:7]};
-        //         addr_offset_out = {ADDR_WIDTH{1'b0}};
-        //         load_store_op = 2'b10;
-        //         alusrc_a = alusrca_rs1;
-        //         alusrc_b = alusrcb_imm;
-        //     op_type_b:
-        //         immediate_out = {WORD_WIDTH{1'b0}};
-        //         addr_offset_out = {{WORD_WIDTH-12{(sign_in == 1'b1)}}, instruction_r[7], instruction_r[30:25], instruction_r[11:8], 1'b0};
-        //         rd_out = 5'b0; // Write to X0 discards any stores that might happen as a side effect in later stages after we decide to branch
-        //         alusrc_a = alusrca_rs1;
-        //         alusrc_b = alusrcb_rs2;
-        //     op_type_u:
-        //         immediate_out = {sign_in, instruction_r[30:20], instruction_r[19:12], {12{1'b0}}};
-        //         addr_offset_out = {ADDR_WIDTH{1'b0}};
-        //         rs1_out = 5'b0;
-        //         rs2_out = 5'b0;
-        //         alusrc_a = (op_lui == 1'b1) ? alusrca_rs1 : alusrca_addr; // LUI is reg X0 plus imm, AUIPC is PC plus imm
-        //         alusrc_b = alusrcb_imm;
-        //     op_type_j:
-        //         immediate_out = 32'h4;
-        //         addr_offset_out = {{WORD_WIDTH-20{(sign_in == 1'b1)}}, instruction_r[19:12], instruction_r[20], instruction_r[30:25], instruction_r[24:21], 1'b0};
-        //         alusrc_a = alusrca_addr;
-        //         alusrc_b = alusrcb_imm;
-        //     default:
-        //         immediate_out = {WORD_WIDTH{1'b0}};
-        //         addr_offset_out = {ADDR_WIDTH{1'b0}};
-        // endcase
-        
+        endcase        
     end
 
 

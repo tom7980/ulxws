@@ -2,8 +2,8 @@
 
 module register_file
 #(
-    parameter WORD_WIDTH = 0,
-    parameter ADDR_WIDTH = 0,
+    parameter WORD_WIDTH = 32,
+    parameter ADDR_WIDTH = 5,
     parameter DEPTH = 2 ** ADDR_WIDTH
 )
 (
@@ -17,27 +17,27 @@ module register_file
     output reg [WORD_WIDTH-1:0] rs1_data,
 
     input wire [ADDR_WIDTH-1:0] rs2_addr,
-    output reg [WORD_WIDTH-1:0] rs2_data,
+    output reg [WORD_WIDTH-1:0] rs2_data
 );
 
-    reg [WORD_WIDTH-1:0] register_file [DEPTH-1:0];
+    reg [WORD_WIDTH-1:0] register_file_block [DEPTH-1:0];
 
     localparam WORD_ZERO = {WORD_WIDTH{1'b0}};
     localparam ADDR_ZERO = {ADDR_WIDTH{1'b0}};
 
-    genvar i;
+    integer i;
     initial begin
         for (i = 0; i < DEPTH; i = i + 1) begin
-            register_file[i] = WORD_ZERO;
+            register_file_block[i] = WORD_ZERO;
         end
     end
 
     always @(posedge clk) begin
         if (rd_valid) begin
-            register_file[rd_addr] <= (rd_addr != ADDR_ZERO) ? rd_data : WORD_ZERO;
+            register_file_block[rd_addr] <= (rd_addr != ADDR_ZERO) ? rd_data : WORD_ZERO;
         end
-        rs1_data <= (rs1_addr != ADDR_ZERO) ? register_file[rs1_addr] : WORD_ZERO;
-        rs2_data <= (rs2_addr != ADDR_ZERO) ? register_file[rs2_addr] : WORD_ZERO;
+        rs1_data <= (rs1_addr != ADDR_ZERO) ? register_file_block[rs1_addr] : WORD_ZERO;
+        rs2_data <= (rs2_addr != ADDR_ZERO) ? register_file_block[rs2_addr] : WORD_ZERO;
     end
 
 endmodule

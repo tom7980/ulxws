@@ -1,23 +1,22 @@
 `default_nettype none
 
-module axi4_skid_buffer
+module skid_buffer
 #(
-    parameter DATA_WIDTH = 8
+    parameter DATA_WIDTH = 8,
+    parameter RESET_VALUE = {DATA_WIDTH{1'b0}}
 )
 (
-    input   wire                        axi_clk, axi_reset;
-    
-    // Master -> Skid -> Slave
+    input wire			 clk,
+    input wire			 reset,
+ 
 
-    input   wire                        i_valid;
-    output  wire                        i_ready;
-    input   wire    [DATA_WIDTH-1:0]    i_data;
+    input wire			 i_valid,
+    output wire			 i_ready,
+    input wire [DATA_WIDTH-1:0]	 i_data,
 
-    // Slave -> Skid -> Master
-
-    output  wire                        o_valid;
-    input   wire                        o_ready;
-    output  wire    [DATA_WIDTH-1:0]    o_data;
+    output wire			 o_valid,
+    input wire			 o_ready,
+    output wire [DATA_WIDTH-1:0] o_data
 );
 
     localparam WORD_ZERO = {DATA_WIDTH{1'b0}};
@@ -30,38 +29,38 @@ module axi4_skid_buffer
     register
     #(
         .WORD_WIDTH     (DATA_WIDTH),
-        .RESET_VALUE    (WORD_ZERO)
+        .RESET_VALUE    (RESET_VALUE)
     )
     internal_reg
     (
-        .clock (axi_clk),
-        .reset (axi_reset),
+        .clock (clk),
+        .reset (reset),
         .write_enable (r_write_enable),
         .input_data (i_data),
         .output_data (r_data)
-    )
+     );
 
     reg                     out_write_enable    = 1'b1;
     reg                     use_internal        = 1'b0;
     reg [DATA_WIDTH-1:0]    selected_data       = WORD_ZERO;
 
     always @(*) begin
-        selected_data = (use_internal == 1'b1) ? r_data : input_data;
+        selected_data = (use_internal == 1'b1) ? r_data : i_data;
     end
 
     register
     #(
         .WORD_WIDTH     (DATA_WIDTH),
-        .RESET_VALUE    (WORD_ZERO)
+        .RESET_VALUE    (RESET_VALUE)
     )
     output_reg
     (
-        .clock (axi_clk),
-        .reset (axi_reset),
+        .clock (clk),
+        .reset (reset),
         .write_enable (out_write_enable),
         .input_data (selected_data),
         .output_data (o_data)
-    )
+     );
 
     localparam STATE_BITS = 2;
 
@@ -89,8 +88,8 @@ module axi4_skid_buffer
     )
     i_ready_reg
     (
-        .clock (axi_clk),
-        .reset (axi_reset),
+        .clock (clk),
+        .reset (reset),
         .write_enable (1'b1),
         .input_data (state_next != FULL),
         .output_data (i_ready)
@@ -103,8 +102,8 @@ module axi4_skid_buffer
     )
     o_valid_reg
     (
-        .clock (axi_clk),
-        .reset (axi_reset),
+        .clock (clk),
+        .reset (reset),
         .write_enable (1'b1),
         .input_data (state_next != EMPTY),
         .output_data (o_valid)
@@ -150,12 +149,12 @@ module axi4_skid_buffer
     )
     state_reg
     (
-        .clock (axi_clk),
-        .reset (axi_reset),
+        .clock (clk),
+        .reset (reset),
         .write_enable (1'b1),
         .input_data (state_next),
         .output_data (state)
-    )
+     );
 
     always @(*) begin
         out_write_enable = (load == 1'b1) || (flow == 1'b1) || (flush = 1'b1);

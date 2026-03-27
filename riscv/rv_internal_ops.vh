@@ -23,3 +23,4 @@ localparam MEM_LOAD_HU = 4'b0101;
 localparam MEM_STORE_B = 4'b0110;
 localparam MEM_STORE_H = 4'b0111;
 localparam MEM_STORE_W = 4'b1000;
+

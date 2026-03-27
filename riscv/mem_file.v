@@ -5,6 +5,7 @@ module mem_file
     ADDR_WIDTH = 32
 )
 (
+    input wire clk,
     input wire [ADDR_WIDTH-1:0] addr_in,
     input wire addr_valid,
     output reg addr_ready,
@@ -14,14 +15,15 @@ module mem_file
     input wire data_ready
 );
 
-    reg [ADDR_WIDTH-1:0] mem_blk [WORD_WIDTH-1:0];
+   reg [ADDR_WIDTH-1:0] mem_blk [WORD_WIDTH-1:0];
+   
 
     assign addr_ready = 1'b1;
 
     always @(posedge clk) begin
         if (addr_valid == 1'b1) begin
-            data_out = mem_blk[addr_in];
-            data_valid = 1'b1;
+            data_out <= mem_blk[addr_in];
+            data_valid <= 1'b1;
         end
     end
 

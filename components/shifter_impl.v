@@ -2,7 +2,7 @@
 
 module shifter_impl
 #(
-    parameter WORD_WIDTH = 0,
+    parameter WORD_WIDTH = 32,
     parameter SHIFT_WIDTH = $clog2(WORD_WIDTH),
     parameter IMPLEMENTATION = ""
 )

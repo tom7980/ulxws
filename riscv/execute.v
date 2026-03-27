@@ -11,53 +11,113 @@ module execute
     `include "rv_widths.vh"
 )
 (
-    input wire clk,
-    output reg branch_flush,
-    output reg [ADDR_WIDTH-1:0] branch_pc,
+    input wire			    clk,
+    input wire                      reset,
+    output reg			    branch_flush,
+    output reg [ADDR_WIDTH-1:0]	    branch_pc,
 
-    input wire [WORD_WIDTH-1:0] immediate_in,
-    input wire [WORD_WIDTH-1:0] rs1_val_in, // Values from registers will be fed in via the decode stage from either reg file or register bypass
-    input wire [WORD_WIDTH-1:0] rs2_val_in,
+    input wire [WORD_WIDTH-1:0]	    immediate_in,
+    input wire [WORD_WIDTH-1:0]	    rs1_val_in,	  // Values from registers will be fed in via the decode stage from either reg file or register bypass
+    input wire [WORD_WIDTH-1:0]	    rs2_val_in,
 
     input wire [REG_ADDR_WIDTH-1:0] rd_addr_in,
-    output reg [WORD_WIDTH-1:0] rd_val_out,
+    output reg [WORD_WIDTH-1:0]	    rd_val_out,
     output reg [REG_ADDR_WIDTH-1:0] rd_addr_out,
 
-    input wire [OP_WIDTH-1:0] opcode,
-    input wire [6:0] funct7,
-    input wire [2:0] funct3,
+    input wire [6:0]		    funct7,
+    input wire [2:0]		    funct3,
 
-    input wire alusrc_a, // 0 instruction address, 1 register value
-    input wire alusrc_b, // 0 immediate, 1 register value
-    input wire addr_offset_from_reg,
-    input wire [MEM_OP_WIDTH-1:0] load_store_op_in,
-    output reg [MEM_OP_WIDTH-1:0] load_store_op_out,
-    input wire [1:0] is_branch_op, // 01 branch, 10 jump op, 00 none
-    input wire [ALU_OPS_WIDTH-1:0] alu_op,
+    input wire			    alusrc_a,	  // 0 instruction address, 1 register value
+    input wire			    alusrc_b,	  // 0 immediate, 1 register value
+    input wire			    addr_offset_from_reg,
+    input wire [MEM_OP_WIDTH-1:0]   load_store_op_in,
+    output reg [MEM_OP_WIDTH-1:0]   load_store_op_out,
+    input wire [1:0]		    is_branch_op, // 01 branch, 10 jump op, 00 none
+    input wire [ALU_OPS_WIDTH-1:0]  alu_op,
 
-    input wire [ADDR_WIDTH-1:0] addr_offset_in,
-    input wire [ADDR_WIDTH-1:0] instr_address_in,
-    input wire branch_taken_in,
+    input wire [ADDR_WIDTH-1:0]	    addr_offset_in,
+    input wire [ADDR_WIDTH-1:0]	    instr_address_in,
+    input wire			    branch_taken_in,
 
-    input wire decode_valid,
-    output reg execute_ready,
+    output reg [ADDR_WIDTH-1:0]	    mem_addr_out,
 
-    input wire memory_ready,
-    output reg execute_valid
+    input wire			    decode_valid,
+    output reg			    execute_ready,
+
+    input wire			    memory_ready,
+    output reg			    execute_valid
 );
     `include "rv_internal_ops.vh"
 
+    wire [WORD_WIDTH-1:0]    immediate_in_r;
+    wire [WORD_WIDTH-1:0]    rs1_val_in_r;
+    wire [WORD_WIDTH-1:0]    rs2_val_in_r;
+    wire [6:0]		     funct7_r;
+    wire [2:0]		     funct3_r;
+    wire		     alusrc_a_r;
+    wire		     alusrc_b_r;
+    wire		     addr_offset_from_reg_r;
+    wire [1:0]		     is_branch_op_r;
+    wire [ALU_OPS_WIDTH-1:0] alu_op_r;
+    wire [ADDR_WIDTH-1:0]    addr_offset_in_r;
+    wire [ADDR_WIDTH-1:0]    instr_address_in_r;
+    wire		     branch_taken_in_r;
+
+    localparam INPUT_WIDTH = (WORD_WIDTH * 3) + REG_ADDR_WIDTH + 16 + MEM_OP_WIDTH + ALU_OPS_WIDTH + (ADDR_WIDTH * 2);
+
+    // Clock in all input data - skid if pipeline stages after this one stall.
+   
+    skid_buffer
+    #(
+        .DATA_WIDTH(INPUT_WIDTH)
+    )
+    skid_buffer_in
+    (
+       	.clk(clk),
+	.reset(reset),
+	.i_valid(decode_valid),
+	.i_ready(execute_ready),
+	.o_valid(execute_valid),
+	.o_ready(memory_ready),
+	.i_data({immediate_in, 
+		 rs1_val_in,
+		 rs2_val_in,
+		 rd_addr_in, 
+		 funct7,
+		 funct3,
+		 alusrc_a,
+		 alusrc_b,
+		 addr_offset_from_reg,
+		 load_store_op_in,
+		 is_branch_op,
+		 alu_op,
+		 addr_offset_in,
+		 instr_address_in,
+		 branch_taken_in}),
+	.o_data({immediate_in_r,
+		 rs1_val_in_r,
+		 rs2_val_in_r,
+		 rd_addr_out,
+		 funct7_r,
+		 funct3_r,
+		 alusrc_a_r,
+		 alusrc_b_r,
+		 addr_offset_from_reg_r,
+		 load_store_op_out,
+		 is_branch_op_r,
+		 alu_op_r,
+		 addr_offset_in_r,
+		 instr_address_in_r,
+		 branch_taken_in_r}) 
+     );
+
     reg [WORD_WIDTH-1:0] alu_selector_a;
     reg [WORD_WIDTH-1:0] alu_selector_b;
-    reg select_rs1;
-    reg select_rs2;
-
-    
+   
 
     always @(*) begin
-        execute_ready = 1'b1;
-        alu_selector_a = (alusrc_a == 1'b1) ? rs1_val_in : instr_address_in; 
-        alu_selector_b = (alusrc_b == 1'b1) ? rs2_val_in : immediate_in;
+        alu_selector_a = (alusrc_a_r == 1'b1) ? rs1_val_in_r : instr_address_in_r; 
+        alu_selector_b = (alusrc_b_r == 1'b1) ? rs2_val_in_r : immediate_in_r;
     end
 
     reg shift_direction;
@@ -65,10 +125,10 @@ module execute
     reg [`DYADIC_TABLE_WIDTH-1:0] boolean_op;
 
     always @(*) begin
-        shift_direction = (funct3 == `FUNCT3_SLLI); // SLL == SLLI - shift direction 1 == left
-        logical_or_arithmetic = (funct7 == `FUNCT7_SRA); // SRA == SRAI (imm specialization) - 1 is Arithmetic
+        shift_direction = (funct3_r == `FUNCT3_SLLI); // SLL == SLLI - shift direction 1 == left
+        logical_or_arithmetic = (funct7_r == `FUNCT7_SRA); // SRA == SRAI (imm specialization) - 1 is Arithmetic
 
-        casez (funct3)
+        casez (funct3_r)
             `FUNCT3_XOR: begin boolean_op = `DYADIC_A_XOR_B; end
             `FUNCT3_OR:  begin boolean_op = `DYADIC_A_OR_B; end
             `FUNCT3_AND: begin boolean_op = `DYADIC_A_AND_B; end
@@ -129,7 +189,7 @@ module execute
     )
     add_sub_unit
     (
-        .add_sub((alu_op == ALU_SUB)),
+        .add_sub((alu_op_r == ALU_SUB)),
         .carry_in(1'b0),
         .A(alu_selector_a),
         .B(alu_selector_b),
@@ -143,7 +203,7 @@ module execute
     reg [4:0] shift_amount;
 
     always @(*) begin
-        shift_amount = immediate_in[4:0];
+        shift_amount = immediate_in_r[4:0];
     end
 
     barrel_shifter
@@ -171,7 +231,7 @@ module execute
     reg [ADDR_WIDTH-1:0] branch_pc_c = {ADDR_WIDTH{1'b0}};
 
     always @(*) begin
-        address_target_c = ((addr_offset_from_reg == 1'b1) ? rs1_val_in : instr_address_in) + addr_offset_in;
+        address_target_c = ((addr_offset_from_reg_r == 1'b1) ? rs1_val_in_r : instr_address_in_r) + addr_offset_in_r;
 
         case(alu_op)
             ALU_EQ: begin branch_should_take = (equal == 1'b1); end
@@ -183,55 +243,13 @@ module execute
             default: begin branch_should_take = 1'b0; end
         endcase
 
-        branch_taken_is_not_same = branch_should_take != branch_taken_in; // If it's a branch and we did the opposite in the fetch unit then do the branch, don't branch again if we already did
+        branch_taken_is_not_same = branch_should_take != branch_taken_in_r; // If it's a branch and we did the opposite in the fetch unit then do the branch, don't branch again if we already did
 
-        is_jump_and_not_taken = (is_branch_op == 2'b10) ? (branch_taken_in == 1'b0) : 1'b0; // If it's a jump op & we didn't take the jump in the fetch unit, take the jump now and flush
+        is_jump_and_not_taken = (is_branch_op_r == 2'b10) ? (branch_taken_in_r == 1'b0) : 1'b0; // If it's a jump op & we didn't take the jump in the fetch unit, take the jump now and flush
 
-        branch_flush_out_c = (branch_taken_is_not_same == 1'b1) && (is_branch_op == 2'b01) || (is_jump_and_not_taken == 1'b1);
+        branch_flush_out_c = (branch_taken_is_not_same == 1'b1) && (is_branch_op_r == 2'b01) || (is_jump_and_not_taken == 1'b1);
         branch_pc_c = (branch_flush_out_c == 1'b1) ? address_target_c : {ADDR_WIDTH{1'b0}};
     end
-
-    register
-    #(
-        .WORD_WIDTH(1),
-        .RESET_VALUE(1'b0)
-    )
-    branch_flush_r
-    (
-        .clock(clk),
-        .reset(1'b0),
-        .write_enable(1'b1),
-        .input_data(branch_flush_out_c),
-        .output_data(branch_flush)
-    );
-
-    register
-    #(
-        .WORD_WIDTH(ADDR_WIDTH),
-        .RESET_VALUE({ADDR_WIDTH{1'b0}})
-    )
-    branch_pc_r
-    (
-        .clock(clk),
-        .reset((branch_flush == 1'b1)),
-        .write_enable(1'b1),
-        .input_data(branch_pc_c),
-        .output_data(branch_pc)
-    );
-
-    register
-    #(
-        .WORD_WIDTH(REG_ADDR_WIDTH),
-        .RESET_VALUE({REG_ADDR_WIDTH{1'b0}})
-    )
-    rd_addr_out_r
-    (
-        .clock(clk),
-        .reset((branch_flush == 1'b1)),
-        .write_enable(1'b1),
-        .input_data(rd_addr_in),
-        .output_data(rd_addr_out)
-    );
 
     reg [WORD_WIDTH-1:0] rd_val_out_c;
 
@@ -249,34 +267,22 @@ module execute
             ALU_LTU  : begin rd_val_out_c = {{WORD_WIDTH-1{1'b0}}, lt_unsigned}; end
             default  : begin rd_val_out_c = {WORD_WIDTH{1'b0}}; end
         endcase
-    end
+    end // always @ (*)
 
-    register
-    #(
-        .WORD_WIDTH(WORD_WIDTH),
-        .RESET_VALUE({WORD_WIDTH{1'b0}})
-    )
-    rd_val_out_r
-    (
-        .clock(clk),
-        .reset((branch_flush == 1'b1)),
-        .write_enable(1'b1),
-        .input_data(rd_val_out_c),
-        .output_data(rd_val_out)
-    );
+   reg [WORD_WIDTH-1:0] val_out_store_or_rd; // If we're doing a memory store then the value out should be the value to store, otherwise output the value to go into register rd
 
-    register
-    #(
-        .WORD_WIDTH(MEM_OP_WIDTH),
-        .RESET_VALUE({MEM_OP_WIDTH{1'b0}})
-    )
-    load_store_op_r
-    (
-        .clock(clk),
-        .reset((branch_flush == 1'b1)),
-        .write_enable(1'b1),
-        .input_data(load_store_op_in),
-        .output_data(load_store_op_out)
-    );
+   always @(*) begin
+      casez (load_store_op_in)
+	MEM_STORE_B: begin val_out_store_or_rd = rs2_val_in; end
+	MEM_STORE_H: begin val_out_store_or_rd = rs2_val_in; end
+	MEM_STORE_W: begin val_out_store_or_rd = rs2_val_in; end
+	default: begin val_out_store_or_rd = rd_val_out_c; end
+      endcase // casez (load_store_op_in)
+
+      rd_val_out = val_out_store_or_rd;
+      branch_pc = branch_pc_c;
+      branch_flush = branch_flush_out_c;
+      mem_addr_out = address_target_c;
+   end
 
 endmodule

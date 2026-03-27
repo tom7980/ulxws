@@ -7,7 +7,7 @@
 // Each beat of a burst is a full data bus width of data
 // Each transaction is one burst
 
-module Axi4_Slave_Interface_impl
+module axi4_slave_interface_impl
 #(
     parameter AXI_ID_WIDTH = 2,
     parameter AXI_DATA_WIDTH = 8,

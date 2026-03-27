@@ -41,82 +41,59 @@ module instruction_fetch
     // reg [ADDR_WIDTH-1:0] addr_buf_two = NOP;
 
     always @(*) begin
-        fetch_instr_in_ready = (branch_flush == 1'b0) & (decode_ready == 1'b1); // We only want new instructions if the decode stage is ready for them or we're not flushing (as we then need to fetch the new branch address on the next cycle)
-        fetch_addr_valid = 1'b1; // Fetch addr is generated combinatorally from branch predicts or from next registered PC & is always valid
-
-        instr_out = instr_buf_one;
+        instr_out = instr_buf_one; // Insert NOP on a branch flush
         decode_addr_out = addr_buf_one;
     end
-    
-    // Register instruction out valid so if memory stalls on an instruction fetch we wait in decode for a new instruction
-    register
-    #(
-        .WORD_WIDTH(1),
-        .RESET_VALUE(1'b0)
-    )
-    instruction_out_valid_r
-    (
-        .clock(clk),
-        .reset(1'b0),
-        .write_enable(1'b1),
-        .input_data(mem_instr_in_valid),
-        .output_data(fetch_instr_out_valid)
-    );
 
-    register
+    skid_buffer
     #(
-        .WORD_WIDTH(WORD_WIDTH),
-        .RESET_VALUE(NOP)
+        .DATA_WIDTH(WORD_WIDTH + ADDR_WIDTH),
+	.RESET_VALUE({NOP, {ADDR_WIDTH{1'b0}}})
     )
-    instr_reg_one
+    skid_input_r
     (
-        .clock(clk),
-        .reset((branch_flush == 1'b1)),
-        .write_enable((decode_ready == 1'b1) & (mem_instr_in_valid == 1'b1)),
-        .input_data(instr_in),
-        .output_data(instr_buf_one)
-    );
-
-    register
-    #(
-        .WORD_WIDTH(ADDR_WIDTH),
-        .RESET_VALUE(0)
-    )
-    addr_reg_one
-    (
-        .clock(clk),
-        .reset(1'b0),
-        .write_enable((decode_ready == 1'b1) & (mem_instr_in_valid == 1'b1)),
-        .input_data(mem_addr_out),
-        .output_data(addr_buf_one)
-    );
+	.clk(clk),
+	.reset(branch_flush),
+	.i_valid(mem_instr_in_valid),
+	.i_ready(fetch_instr_in_ready),
+	.o_valid(fetch_instr_out_valid),
+	.o_ready(decode_ready),
+	.i_data({instr_in, mem_addr_out}),
+	.o_data({instr_buf_one, addr_buf_one})
+     );
 
     // PC selection
     reg [ADDR_WIDTH-1:0] pc_next_comb;
     reg [ADDR_WIDTH-1:0] pc_addr_buf;
-
+    reg [ADDR_WIDTH-1:0] next_pc_or_external_branch;
+   
+   
     always @(*) begin
         // Next PC is either branch PC from execute (in which case we flush the pipeline), predicted address + 4, or current PC + 4.
         pc_next_comb = (branch_taken == 1'b1) ? (predicted_branch_address + 32'h4) : (pc_addr_buf + 32'h4);
 
         // Current requested address is either predicted branch address in the case of predicted branch, or the stored next calculated PC.
-        // This is muxed and might not meet timing - in that case we might have to add a cycle of bubble for predicted branches
         mem_addr_out = (branch_taken == 1'b1) ? predicted_branch_address : pc_addr_buf;
+
+	next_pc_or_external_branch = (branch_flush == 1'b1) ? branch_pc_in : pc_next_comb;
     end
 
-    register
+    skid_buffer
     #(
-        .WORD_WIDTH(WORD_WIDTH),
-        .RESET_VALUE(RESET_ADDR)
+        .DATA_WIDTH(WORD_WIDTH),
+	.RESET_VALUE(RESET_ADDR)
     )
-    pc_reg_inst
+    skid_pc_buf
     (
-        .clock(clk),
-        .reset(1'b0),
-        .write_enable((mem_addr_ready == 1'b1) && (decode_ready == 1'b1) || (branch_flush == 1'b1)),
-        .input_data((branch_flush == 1'b1) ? branch_pc_in : pc_next_comb),
-        .output_data(pc_addr_buf)
-    );
+       	.clk(clk),
+	.reset(1'b0),
+	.i_valid(1'b1), // This input is always valid in this stage
+	.i_ready(),
+	.o_valid(fetch_addr_valid),
+	.o_ready(mem_addr_ready), // We can keep fetching instructions if the decode stage is stalled but we can't if the memory controller is stalled
+	.i_data(next_pc_or_external_branch),
+	.o_data(pc_addr_buf)
+     );
 
     // Branch Prediction
 
