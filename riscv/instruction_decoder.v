@@ -50,7 +50,7 @@ module instruction_decoder
 
     // ============= Register Signals In & Out for pipelining ============= //
 
-    wire [WORD_WIDTH-1:0] instruction_r;   
+    wire [WORD_WIDTH-1:0] instruction_r;
 
     localparam NOP = 32'b00000000000000000000000000010011;
 

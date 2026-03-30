@@ -66,12 +66,11 @@ int main(int argc, char** argv) {
     top->instr = 0b10101010101010101010111110110111;
     top->instr_address_in = 0b10101010101010101010111110110111;
 
-    top->stall = 0;
-    top->decode_reset = 0;
-
     top->clk = 1;
 
-    top->instr_valid = 1;
+    top->branch_flush = 0;
+
+    top->fetch_valid = 1;
     top->execute_ready = 1;
 
     top->eval();
@@ -87,7 +86,7 @@ int main(int argc, char** argv) {
             }    
             top->eval();
 
-            VL_PRINTF("[%.1b] Instr = %.32b Addr = %.32b imm = %.32b \n Decode Ready = %.1b Op = %.7b funct3 = %.3b funct7 = %.7b Decode Valid = %.1b rs1 = %d rs2 = %d rd = %d IEE = %.1b\n\n",
+            VL_PRINTF("[%.1b] Instr = %.32b Addr = %.32b imm = %.32b \n Decode Ready = %.1b Op = %.7b funct3 = %.3b funct7 = %.7b Decode Valid = %.1b rs1 = %.5b rs2 = %.5b rd = %.5b IEE = %.1b\n\n",
                 top->clk, top->instr, top->instr_address_out, top->immediate_out, top->decode_ready, top->opcode, top->funct3, top->funct7, top->decode_valid, top->rs1_out, top->rs2_out, top->rd_out, top->illegal_instruction_exception);
         }
     }
@@ -96,11 +95,11 @@ int main(int argc, char** argv) {
         top->clk = !top->clk;
         top->eval();
 
-        VL_PRINTF("[%.1b] Instr = %.32b Addr = %.32b imm = %.32b \n Decode Ready = %.1b Op = %.7b funct3 = %.3b funct7 = %.7b Decode Valid = %.1b rs1 = %d rs2 = %d rd = %d IEE = %.1b\n\n",
+        VL_PRINTF("[%.1b] Instr = %.32b Addr = %.32b imm = %.32b \n Decode Ready = %.1b Op = %.7b funct3 = %.3b funct7 = %.7b Decode Valid = %.1b rs1 = %.5b rs2 = %.5b rd = %.5b IEE = %.1b\n\n",
             top->clk, top->instr, top->instr_address_out, top->immediate_out, top->decode_ready, top->opcode, top->funct3, top->funct7, top->decode_valid, top->rs1_out, top->rs2_out, top->rd_out, top->illegal_instruction_exception);
     }
 
-    top->decode_reset = 1;
+    top->branch_flush = 1;
 
     for (size_t i = 0; i < 2; i++) {
         top->clk = !top->clk;
@@ -109,7 +108,7 @@ int main(int argc, char** argv) {
 
     VL_PRINTF("Check Reset Values for Flush\n");
 
-    VL_PRINTF("[%.1b] Instr = %.32b Addr = %.32b imm = %.32b \n Decode Ready = %.1b Op = %.7b funct3 = %.3b funct7 = %.7b Decode Valid = %.1b rs1 = %d rs2 = %d rd = %d IIE = %.1b\n\n",
+    VL_PRINTF("[%.1b] Instr = %.32b Addr = %.32b imm = %.32b \n Decode Ready = %.1b Op = %.7b funct3 = %.3b funct7 = %.7b Decode Valid = %.1b rs1 = %.5b rs2 = %.5b rd = %.5b IIE = %.1b\n\n",
             top->clk, top->instr, top->instr_address_out, top->immediate_out, top->decode_ready, top->opcode, top->funct3, top->funct7, top->decode_valid, top->rs1_out, top->rs2_out, top->rd_out, top->illegal_instruction_exception);
 
     // top->decode_ready
@@ -134,6 +133,5 @@ int main(int argc, char** argv) {
 
     top->final();
 
-    contextp->statsPrintSummary();
     return 0;
 }

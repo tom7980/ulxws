@@ -39,6 +39,11 @@ module load_store
 );
    `include "rv_internal_ops.vh"
 
+    initial begin
+       $dumpfile("load_store.fst");
+       $dumpvars(0, load_store);
+    end
+
     reg [WORD_WIDTH-1:0]     rd_val_in_r;
     reg [REG_ADDR_WIDTH-1:0] rd_addr_in_r;
     reg [MEM_OP_WIDTH-1:0]   load_store_op_in_r;
@@ -99,15 +104,15 @@ module load_store
 
    always @(*) begin
       next_state = (flow == 1'b1) ? WRITEBACK : state;
-      next_state = (load == 1'b1) ? WAIT_LOAD_DATA : state;
-      next_state = (writeback_load == 1'b1) ? WRITEBACK : state;
-      next_state = (store == 1'b1) ? WRITEBACK : state;
+      next_state = (load == 1'b1) ? WAIT_LOAD_DATA : next_state;
+      next_state = (writeback_load == 1'b1) ? WRITEBACK : next_state;
+      next_state = (store == 1'b1) ? WRITEBACK : next_state;
    end
 
    register
    #(
        .WORD_WIDTH(STATE_BITS),
-       .RESET_VALUE({STATE_BITS{1'b0}})
+       .RESET_VALUE(WRITEBACK)
    )
    state_reg
    (
@@ -138,7 +143,7 @@ module load_store
 	controller_addr_o = mem_addr_in_r;
 	controller_we = is_store_op;
 
-	input_data_ready = (state == WRITEBACK);
+	input_data_ready = (next_state == WRITEBACK) && (writeback_mem_ready == 1'b1);
 	mem_controller_valid = load || store;
 	mem_controller_ready = (state == WAIT_LOAD_DATA);
 	mem_writeback_valid = writeback_load || flow;

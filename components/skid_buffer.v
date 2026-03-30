@@ -98,7 +98,7 @@ module skid_buffer
     register
     #(
         .WORD_WIDTH  (1),
-        .RESET_VALUE (1'b1)
+        .RESET_VALUE (1'b0)
     )
     o_valid_reg
     (
@@ -135,10 +135,10 @@ module skid_buffer
 
     always @(*) begin
         state_next = (load   == 1'b1) ? BUSY  : state;
-        state_next = (unload == 1'b1) ? EMPTY : state;
-        state_next = (flow   == 1'b1) ? BUSY  : state;
-        state_next = (fill   == 1'b1) ? FULL  : state;
-        state_next = (flush  == 1'b1) ? BUSY  : state;
+        state_next = (flow   == 1'b1) ? BUSY  : state_next;
+        state_next = (fill   == 1'b1) ? FULL  : state_next;
+        state_next = (flush  == 1'b1) ? BUSY  : state_next;
+	state_next = (unload == 1'b1) ? EMPTY : state_next;
     end
 
     // Register next state
@@ -157,7 +157,7 @@ module skid_buffer
      );
 
     always @(*) begin
-        out_write_enable = (load == 1'b1) || (flow == 1'b1) || (flush = 1'b1);
+        out_write_enable = (load == 1'b1) || (flow == 1'b1) || (flush == 1'b1);
         r_write_enable = (fill == 1'b1);
         use_internal = (flush == 1'b1);
     end
