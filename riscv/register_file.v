@@ -36,8 +36,11 @@ module register_file
         if (rd_valid) begin
             register_file_block[rd_addr] <= (rd_addr != ADDR_ZERO) ? rd_data : WORD_ZERO;
         end
-        rs1_data <= (rs1_addr != ADDR_ZERO) ? register_file_block[rs1_addr] : WORD_ZERO;
-        rs2_data <= (rs2_addr != ADDR_ZERO) ? register_file_block[rs2_addr] : WORD_ZERO;
+    end
+
+    always @(*) begin
+        rs1_data = (rs1_addr != ADDR_ZERO) ? register_file_block[rs1_addr] : WORD_ZERO;
+        rs2_data = (rs2_addr != ADDR_ZERO) ? register_file_block[rs2_addr] : WORD_ZERO;
     end
 
 endmodule

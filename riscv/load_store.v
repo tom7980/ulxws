@@ -138,7 +138,7 @@ module load_store
 
     always @(*) begin
 	rd_val_out = (state == WAIT_LOAD_DATA) ? load_data : rd_val_in_r;
-	rd_addr_out = rd_addr_in_r;
+	rd_addr_out = (is_store_op) ? {REG_ADDR_WIDTH{1'b0}} : rd_addr_in_r;
 	controller_data_o = rd_val_in_r;
 	controller_addr_o = mem_addr_in_r;
 	controller_we = is_store_op;
