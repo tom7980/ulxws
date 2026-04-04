@@ -10,40 +10,41 @@ module instruction_decoder
     `include "rv_widths.vh"
 )
 (
-    input wire clk,
-    input wire branch_flush, // Flush is reset (flush on branch taken)
+    input wire			    clk,
+    input wire			    branch_flush,     // Flush is reset (flush on branch taken)
 
     // Input from fetch stage
-    input wire [WORD_WIDTH-1:0] instr,
-    input wire [ADDR_WIDTH-1:0] instr_address_in, // Keep track of current instruction address for exceptions & branch miss predict
-    input wire branch_taken_in,
-    input wire fetch_valid,
-    output reg decode_ready,
+    input wire [WORD_WIDTH-1:0]	    instr,
+    input wire [ADDR_WIDTH-1:0]	    instr_address_in, // Keep track of current instruction address for exceptions & branch miss predict
+    input wire			    branch_taken_in,
+    input wire			    fetch_valid,
+    output reg			    decode_ready,
 
     // Output to execute stage
-    output reg [WORD_WIDTH-1:0] immediate_out,
+    output reg [WORD_WIDTH-1:0]	    immediate_out,
     output reg [REG_ADDR_WIDTH-1:0] rs1_out,
     output reg [REG_ADDR_WIDTH-1:0] rs2_out,
     output reg [REG_ADDR_WIDTH-1:0] rd_out,
 
-    output reg [OP_WIDTH-1:0] opcode,
-    output reg [6:0] funct7,
-    output reg [2:0] funct3,
+    output reg [OP_WIDTH-1:0]	    opcode,
+    output reg [6:0]		    funct7,
+    output reg [2:0]		    funct3,
 
-    output reg alusrc_a, // 0 instruction address, 1 register value
-    output reg alusrc_b, // 0 immediate, 1 register value
-    output reg [MEM_OP_WIDTH-1:0] load_store_op,
-    output reg [ADDR_WIDTH-1:0] addr_offset_out,
-    output reg addr_offset_from_reg,
-    output reg [1:0] is_branch_op, // 01 branch, 10 jump op, 00 none
-    output reg [ALU_OPS_WIDTH-1:0] alu_op,
+    output reg			    alusrc_a,	      // 0 instruction address, 1 register value
+    output reg			    alusrc_b,	      // 0 immediate, 1 register value
+    output reg [MEM_OP_WIDTH-1:0]   load_store_op,
+ 
+    output reg [ADDR_WIDTH-1:0]	    addr_offset_out,
+    output reg			    addr_offset_from_reg,
+    output reg [1:0]		    is_branch_op,     // 01 branch, 10 jump op, 00 none
+    output reg [ALU_OPS_WIDTH-1:0]  alu_op,
 
-    output reg [ADDR_WIDTH-1:0] instr_address_out,
-    output reg branch_taken_out,
+    output reg [ADDR_WIDTH-1:0]	    instr_address_out,
+    output reg			    branch_taken_out,
 
-    output reg decode_valid,
-    input wire execute_ready,
-    output reg illegal_instruction_exception
+    output reg			    decode_valid,
+    input wire			    execute_ready,
+    output reg			    illegal_instruction_exception
 );
     `include "opcode_masks.vh"
     `include "rv_internal_ops.vh"
